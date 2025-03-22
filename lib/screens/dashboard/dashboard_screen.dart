@@ -14,6 +14,13 @@ import 'widgets/clubs_container.dart';
 import 'package:events_manager/models/announcement.dart';
 import 'package:events_manager/screens/events/events_page.dart';
 import 'package:events_manager/screens/clubs/all_clubs_page.dart';
+import 'package:events_manager/utils/common_utils.dart';
+import 'package:events_manager/utils/markdown_renderer.dart';
+import 'package:events_manager/models/latest_ver.dart';
+
+bool hasCheckedForUpdates = false;
+final String _currentVersion = '0.4.1'; // Replace with your app's current version
+
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({
@@ -29,6 +36,132 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final PageController _pageController = PageController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for updates after the UI is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 1), () {
+        _checkForUpdates();
+      });
+    });
+  }
+
+  // Simple function to check for app updates
+  Future<void> _checkForUpdates() async {
+    if (hasCheckedForUpdates) return;
+    hasCheckedForUpdates = true;
+
+    try {
+      final latestVer = await LatestVer.getLatestVer();
+
+      // Only show dialog if version is different
+      if (latestVer.version != _currentVersion) {
+        _showUpdateDialog(latestVer);
+      }
+    } catch (e) {
+      // Silently fail - we don't want to interrupt the user experience
+      debugPrint('Error checking for updates: $e');
+    }
+  }
+
+  // Show update dialog with markdown rendering
+  void _showUpdateDialog(LatestVer latestVer) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: !latestVer.isRequired,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFF0F2026),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF17323D)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF173240),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Icon(
+                      Icons.system_update,
+                      color: Color(0xFFAEE7FF),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    latestVer.isRequired ? 'Required Update' : 'Update Available',
+                    style: const TextStyle(
+                      color: Color(0xFFAEE7FF),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
+                child: SingleChildScrollView(
+                  child: MarkdownRenderer(
+                    data: latestVer.getFormattedMessage(),
+                    selectable: false,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (!latestVer.isRequired)
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'LATER',
+                        style: TextStyle(
+                          color: Color(0xFF83ACBD),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0E668A),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      launchUrlExternal(latestVer.downloadUrl ??
+                          'https://github.com/E-m-i-n-e-n-c-e/Revent/releases/download/beta1/REvent.v${latestVer.version}-beta.apk');
+                    },
+                    child: const Text(
+                      'UPDATE NOW',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _addAnnouncement(Announcement newAnnouncement) async {
     try {

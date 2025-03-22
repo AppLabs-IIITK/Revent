@@ -212,7 +212,7 @@ Future<void> addAnnouncement(Announcement announcement) async {
     // Add the announcement without metadata to the list
     // No need to add metadata to individual announcements
     announcementsList.insert(0, announcement.toJson());
-    announcementsList = announcementsList.take(20).toList();
+    announcementsList = announcementsList.take(50).toList();
 
     // Add metadata only to the entire document update
     final dataWithMetadata = _addMetadata({'announcementsList': announcementsList});

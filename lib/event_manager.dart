@@ -37,101 +37,87 @@ class _EventManagerState extends ConsumerState<EventManager> {
     const double baseWidth = 375.0;
     final double scaleFactor = screenSize.width / baseWidth;
 
-    // // Watch all required providers to check their loading states
-    // final currentUser = ref.watch(currentUserProvider);
-    // final clubs = ref.watch(clubsStreamProvider);
-    // final todaysEvents = ref.watch(todaysEventsStreamProvider);
-    // final recentAnnouncements = ref.watch(recentAnnouncementsStreamProvider);
+    // Watch all required providers to check their loading states
+    final currentUser = ref.watch(currentUserProvider);
+    final clubs = ref.watch(clubsStreamProvider);
+    final todaysEvents = ref.watch(todaysEventsStreamProvider);
+    final recentAnnouncements = ref.watch(recentAnnouncementsStreamProvider);
 
     // Show loading screen if any of the providers are loading
-    return FutureBuilder(
-      future: Future.wait([
-        ref.read(currentUserProvider.future),
-        ref.read(clubsStreamProvider.future),
-        ref.read(todaysEventsStreamProvider.future),
-        ref.read(recentAnnouncementsStreamProvider.future),
-      ]),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF07181F),
-                    Colors.black,
-                  ],
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 4),
-                    Text(
-                      "Welcome to",
-                      style: GoogleFonts.dmSans(
-                        fontSize: 22 * scaleFactor,
-                        fontWeight: FontWeight.w300,
-                        color: const Color(0xFF83ACBD),
-                      ),
-                    ),
-                    SizedBox(height: 10 * scaleFactor),
-                    SvgPicture.asset(
-                      'assets/icons/app_icon.svg',
-                      height: 115 * scaleFactor,
-                      width: 119 * scaleFactor,
-                    ),
-                    SizedBox(height: 8 * scaleFactor),
-                    Text(
-                      'Revent',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 22 * scaleFactor,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF73A3B6),
-                        shadows: const [
-                          Shadow(
-                            color: Color(0x40000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 40 * scaleFactor),
-                    SizedBox(
-                      width: 30 * scaleFactor,
-                      height: 30 * scaleFactor,
-                      child: const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF83ACBD)),
-                      ),
-                    ),
-                    const Spacer(flex: 4),
-                  ],
-                ),
-              ),
+    if (currentUser.isLoading || clubs.isLoading || todaysEvents.isLoading || recentAnnouncements.isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF07181F),
+                Colors.black,
+              ],
             ),
-          );
-        }
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(flex: 4),
+                Text(
+                  "Welcome to",
+                  style: GoogleFonts.dmSans(
+                    fontSize: 22 * scaleFactor,
+                    fontWeight: FontWeight.w300,
+                    color: const Color(0xFF83ACBD),
+                  ),
+                ),
+                SizedBox(height: 10 * scaleFactor),
+                SvgPicture.asset(
+                  'assets/icons/app_icon.svg',
+                  height: 115 * scaleFactor,
+                  width: 119 * scaleFactor,
+                ),
+                SizedBox(height: 8 * scaleFactor),
+                Text(
+                  'Revent',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 22 * scaleFactor,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF73A3B6),
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x40000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 40 * scaleFactor),
+                SizedBox(
+                  width: 30 * scaleFactor,
+                  height: 30 * scaleFactor,
+                  child: const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF83ACBD)),
+                  ),
+                ),
+                const Spacer(flex: 4),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Scaffold(
-              body: _screens[_selectedIndex],
-              bottomNavigationBar: CustomBottomNavigationBar(
-                selectedIndex: _selectedIndex,
-                onItemSelected: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
-              ),
-            );
-          },
-        );
-      },
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: CustomBottomNavigationBar(
+        selectedIndex: _selectedIndex,
+        onItemSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+      ),
     );
   }
 }
