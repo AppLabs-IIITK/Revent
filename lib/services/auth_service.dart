@@ -16,7 +16,7 @@ class AuthService {
       return null;
     }
     if (!googleUser.email.endsWith("iiitkottayam.ac.in") &&
-        !googleUser.email.endsWith("gmail.com")) {
+        !googleUser.email.endsWith("kssakhilraj@gmail.com")) {
       // User is not from the IIIT Kottayam domain, return null
       await googleSignIn.signOut();
       return googleUser;

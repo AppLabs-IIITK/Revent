@@ -37,7 +37,7 @@ exports.sendEmail = async function(to, subject, html) {
     console.log('Mail options:', { ...mailOptions, html: 'HTML content hidden for brevity' });
     const result = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully:', result);
-    return true;
+    return result; // Return the full result object for more detailed logging
   } catch (error) {
     console.error('Detailed email error:', {
       code: error.code,
@@ -45,7 +45,8 @@ exports.sendEmail = async function(to, subject, html) {
       response: error.response,
       stack: error.stack
     });
-    return false;
+    // Throw the error instead of returning false so that retry logic works
+    throw error;
   }
 };
 
