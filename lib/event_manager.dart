@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:events_manager/bottom_navbar.dart';
 import 'package:events_manager/screens/screens.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,7 +37,7 @@ class _EventManagerState extends ConsumerState<EventManager> {
     // Get screen dimensions for responsive sizing
     final Size screenSize = MediaQuery.of(context).size;
     const double baseWidth = 375.0;
-    final double scaleFactor = screenSize.width / baseWidth;
+    final double scaleFactor = min(screenSize.width, screenSize.height) / baseWidth;
 
     // Watch all required providers to check their loading states
     final currentUser = ref.watch(currentUserProvider);

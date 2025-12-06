@@ -67,6 +67,11 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
+    // 🔹 LatestVer Collection
+    match /latestVer/{latestVerId} {
+      allow read: if isAuthenticated();
+    }
+
     // 🔹 Deny access to any other collections by default
     match /{document=**} {
       allow read, write: if false;

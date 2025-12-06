@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:events_manager/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -45,7 +47,7 @@ class LoginPageState extends State<LoginPage> {
     // Get screen dimensions for responsive sizing
     final Size screenSize = MediaQuery.of(context).size;
     const double baseWidth = 375.0; // Base width for reference (iPhone X)
-    final double scaleFactor = screenSize.width / baseWidth;
+    final double scaleFactor = min(screenSize.width,screenSize.height) / baseWidth;
 
     // Responsive text sizes
     final double smallTextSize = 11 * scaleFactor;
