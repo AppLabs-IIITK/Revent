@@ -5,7 +5,6 @@ import 'package:events_manager/models/event.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:events_manager/models/map_marker.dart';
 import 'package:events_manager/models/user.dart';
-import 'package:events_manager/utils/firedata.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:events_manager/models/admin_log.dart';
 
@@ -270,7 +269,10 @@ final clubsStreamProvider = StreamProvider<List<Club>>((ref) {
 });
 
 final mapMarkersProvider = FutureProvider<List<MapMarker>>((ref) async {
-  return loadMapMarkers();
+  final firestore = FirebaseFirestore.instance;
+  final markersSnapshot = await firestore.collection('mapMarkers').get();
+
+  return markersSnapshot.docs.map((doc) => MapMarker.fromJson(doc.data())).toList();
 });
 
 

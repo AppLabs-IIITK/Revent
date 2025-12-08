@@ -45,100 +45,20 @@ Future<void> _addDeleteMetadata(String collection, String documentId) async {
   }
 }
 
-Future<List<Map<String, dynamic>>> loadEvents() async {
-  final firestore = FirebaseFirestore.instance;
-  final events =
-      await firestore.collection('events').orderBy('startTime').get();
-
-  final eventList = events.docs.map((doc) => doc.data()).toList();
-  return eventList;
-}
-
-Future<List<Map<String, dynamic>>> loadEventsByDate(DateTime date) async {
-  final events = await loadEvents();
-  final eventsByDate = events.where((event) {
-    final eventDate = event['startTime'].toDate();
-    return eventDate.year == date.year &&
-        eventDate.month == date.month &&
-        eventDate.day == date.day;
-  }).toList();
-  return eventsByDate;
-}
-
-Future<List<Map<String, dynamic>>> loadTodayEvents() async {
-  return loadEventsByDate(DateTime.now());
-}
-
-Future<List<Map<String, dynamic>>> loadEventsByDateRange(
-    DateTime startDate, DateTime endDate) async {
-  final firestore = FirebaseFirestore.instance;
-
-  // Convert to Timestamps for Firestore query
-  final startTimestamp = Timestamp.fromDate(startDate);
-  final endTimestamp = Timestamp.fromDate(endDate);
-
-  final events = await firestore
-      .collection('events')
-      .where('startTime', isGreaterThanOrEqualTo: startTimestamp)
-      .where('startTime', isLessThanOrEqualTo: endTimestamp)
-      .orderBy('startTime')
-      .get();
-
-  final eventList = events.docs.map((doc) => doc.data()).toList();
-
-  return eventList;
-}
-
 Future<String> sendEvent(Map<String, dynamic> eventJson) async {
   final firestore = FirebaseFirestore.instance;
-  // Add metadata to the event data
-  final eventWithMetadata = _addMetadata(eventJson);
-  final docRef = await firestore.collection('events').add(eventWithMetadata);
-  await docRef.update({'id': docRef.id});
 
-  // Create a notification for the new event
-  await _createEventNotification(eventJson, docRef.id);
+  // Create document reference first to get the ID
+  final docRef = firestore.collection('events').doc();
+
+  // Add the ID to the event data
+  eventJson['id'] = docRef.id;
+  eventJson = _addMetadata(eventJson);
+
+  // Create the document with ID in one write operation
+  await docRef.set(eventJson);
 
   return docRef.id;
-}
-
-// Function to create a notification when an event is added
-Future<void> _createEventNotification(Map<String, dynamic> eventJson, String eventId) async {
-  try {
-    final firestore = FirebaseFirestore.instance;
-    final clubId = eventJson['clubId'] as String;
-
-    // Get club name
-    final clubDoc = await firestore.collection('clubs').doc(clubId).get();
-    String clubName = 'Unknown Club';
-    if (clubDoc.exists && clubDoc.data() != null) {
-      final data = clubDoc.data()!;
-      if (data.containsKey('name')) {
-        clubName = data['name'] as String;
-      }
-    }
-
-    // Get all users
-    final usersSnapshot = await firestore.collection('users').get();
-
-    // Create a notification for each user
-    for (var userDoc in usersSnapshot.docs) {
-      final userId = userDoc.id;
-
-      await firestore.collection('notifications').add({
-        'title': 'New Event: ${eventJson['title']}',
-        'message': 'A new event has been added by $clubName',
-        'time': Timestamp.now(),
-        'eventId': eventId,
-        'clubId': clubId,
-        'tags': [clubName],
-        'read': false,
-        'userId': userId,
-      });
-    }
-  } catch (e) {
-    print('Error creating event notification: $e');
-  }
 }
 
 Future<void> updateEvent(String eventId, Map<String, dynamic> eventJson) async {
@@ -345,29 +265,6 @@ Future<String> uploadClubImage(String clubId, String filePath, String type) asyn
     final imageUrl = await storageRef.getDownloadURL();
 
     return imageUrl;
-  } catch (e) {
-    rethrow;
-  }
-}
-
-Future<void> updateEventLinks(String eventId, {String? registrationLink, String? feedbackLink}) async {
-  try {
-    final firestore = FirebaseFirestore.instance;
-    final Map<String, dynamic> updateData = {};
-
-    if (registrationLink != null) {
-      updateData['registrationLink'] = registrationLink;
-    }
-
-    if (feedbackLink != null) {
-      updateData['feedbackLink'] = feedbackLink;
-    }
-
-    if (updateData.isNotEmpty) {
-      // Add metadata to the update
-      final dataWithMetadata = _addMetadata(updateData);
-      await firestore.collection('events').doc(eventId).update(dataWithMetadata);
-    }
   } catch (e) {
     rethrow;
   }
