@@ -1,13 +1,20 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:events_manager/bottom_navbar.dart';
+import 'package:events_manager/models/version_info.dart';
 import 'package:events_manager/screens/screens.dart';
+import 'package:events_manager/utils/common_utils.dart';
+import 'package:events_manager/utils/markdown_renderer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:events_manager/providers/stream_providers.dart';
+
+bool hasCheckedForUpdates = false;
+final String _currentVersion = '0.4.2'; // Replace with your app's current version
 
 class EventManager extends ConsumerStatefulWidget {
   const EventManager({super.key, required this.user});
@@ -30,6 +37,142 @@ class _EventManagerState extends ConsumerState<EventManager> {
       const SearchScreen(),
       const MapScreen(),
     ];
+
+    // Check for updates after the UI is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if(Platform.isAndroid){
+          _checkForUpdates();
+        }
+      });
+    });
+  }
+
+   // Simple function to check for app updates
+  Future<void> _checkForUpdates() async {
+    // if (hasCheckedForUpdates) return;
+    // hasCheckedForUpdates = true;
+
+    try {
+      final versionInfo = await VersionInfo.getVersionInfo();
+
+      // Only show dialog if new version is available
+      if (versionInfo.isUpdateAvailable(_currentVersion)) {
+        _showUpdateDialog(versionInfo);
+      }
+    } catch (e) {
+      // Silently fail - we don't want to interrupt the user experience
+      debugPrint('Error checking for updates: $e');
+    }
+  }
+
+  // Show update dialog with markdown rendering
+  void _showUpdateDialog(VersionInfo versionInfo) {
+    if (!mounted) return;
+    final isRequired = versionInfo.isForceUpdateRequired(_currentVersion);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: const Color(0xFF0F2026),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF17323D)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF173240),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Icon(
+                        Icons.system_update,
+                        color: Color(0xFFAEE7FF),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isRequired ? 'Required Update' : 'Update Available',
+                      style: const TextStyle(
+                        color: Color(0xFFAEE7FF),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: SingleChildScrollView(
+                    child: MarkdownRenderer(
+                      data: versionInfo.getFormattedMessage(),
+                      selectable: false,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (!isRequired)
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'LATER',
+                          style: TextStyle(
+                            color: Color(0xFF83ACBD),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0E668A),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        final String fallbackUrl = 'https://github.com/E-m-i-n-e-n-c-e/Revent/releases/download/beta1/REvent.v${versionInfo.latestVer}-beta.apk';
+                        final String? downloadUrl = versionInfo.downloadUrl;
+                        Uri? parsedUri = downloadUrl != null ? Uri.tryParse(downloadUrl) : null;
+
+                        String urlToLaunch;
+                        if (parsedUri != null && parsedUri.isAbsolute) {
+                          urlToLaunch = downloadUrl!;
+                        } else {
+                          urlToLaunch = fallbackUrl;
+                        }
+                        launchUrlExternal(urlToLaunch);
+                      },
+                      child: const Text(
+                        'UPDATE NOW',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
