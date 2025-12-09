@@ -407,7 +407,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           label: const Text('ADMIN DASHBOARD'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: const Color(0xFF0E668A),
-                                            foregroundColor: Colors.white,
+                                            foregroundColor: const Color.fromARGB(255, 250, 250, 255),
                                             padding: const EdgeInsets.symmetric(vertical: 12),
                                             shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.circular(8),
@@ -451,7 +451,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                                    color: Color.fromARGB(255, 250, 250, 255),
                                   ),
                                 ),
                               ],
