@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:events_manager/firebase_options.dart';
 import 'package:events_manager/login_page.dart';
-import 'package:events_manager/services/notification_service.dart';
+// import 'package:events_manager/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +19,7 @@ void main() async {
   );
 
   // Initialize notification service
-  await NotificationService.initialize();
+  // await NotificationService.initialize();
 
   runApp(
     const ProviderScope(
