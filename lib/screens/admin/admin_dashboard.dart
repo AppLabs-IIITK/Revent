@@ -16,6 +16,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   bool _isSearchExpanded = false;
 
   @override
@@ -27,12 +28,23 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       ref.read(adminLogsCollectionFilterProvider.notifier).state = 'All';
       ref.read(adminLogsOperationFilterProvider.notifier).state = 'All';
     });
+
+    // Add scroll listener for pagination
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
+      // Load more when user is 500px from the bottom
+      ref.read(adminLogsPaginationProvider.notifier).loadMoreLogs();
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -43,7 +55,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredLogs = ref.watch(filteredAdminLogsProvider);
+    final paginationState = ref.watch(adminLogsPaginationProvider);
     final isUserAdmin = ref.watch(isUserAdminProvider);
+
+    // Auto-load more logs if filtered results are too few to scroll
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (filteredLogs.length < 20 &&
+          paginationState.hasMore &&
+          !paginationState.isLoading) {
+        ref.read(adminLogsPaginationProvider.notifier).loadMoreLogs();
+      }
+    });
 
     return PopScope(
       canPop: !_isSearchExpanded,
@@ -130,6 +152,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ),
                 child: SafeArea(
                   child: CustomScrollView(
+                    controller: _scrollController,
                     slivers: [
                       // Filter options
                       SliverToBoxAdapter(
@@ -169,7 +192,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
 
                       // Logs list
-                      filteredLogs.isEmpty
+                      filteredLogs.isEmpty && !paginationState.isLoading
                           ? SliverFillRemaining(child: _buildEmptyState())
                           : SliverPadding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -191,6 +214,36 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 ),
                               ),
                             ),
+
+                      // Loading indicator at the bottom
+                      if (paginationState.isLoading)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF71C2E4),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // End of list indicator
+                      if (!paginationState.hasMore && filteredLogs.isNotEmpty)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Text(
+                                'No more logs to load',
+                                style: TextStyle(
+                                  color: Color(0xFF83ACBD),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -258,7 +311,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, StateProvider<String> provider) {
+  Widget _buildFilterChip(String label, AutoDisposeStateProvider<String> provider) {
     final selectedValue = ref.watch(provider);
     final isSelected = selectedValue == label;
 
@@ -422,14 +475,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
 
     // Default handling for other collections
-    final changedFields = log.getChangedFields().where((field) => field != 'id').toList();
+    final changedFields = log.getChangedFields()
+        .where((field) => field != 'id' && field != '_metadata')
+        .toList();
     final allFields = <String>{};
 
     if (log.beforeData != null) {
-      allFields.addAll(log.beforeData!.keys.where((key) => key != 'id'));
+      allFields.addAll(log.beforeData!.keys.where((key) =>
+          key != 'id' && key != '_metadata'));
     }
     if (log.afterData != null) {
-      allFields.addAll(log.afterData!.keys.where((key) => key != 'id'));
+      allFields.addAll(log.afterData!.keys.where((key) =>
+          key != 'id' && key != '_metadata'));
     }
 
     if (log.operation.startsWith('create_')) {
@@ -445,7 +502,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildDataTable(Map<String, dynamic>.from(log.afterData ?? {})..remove('id')),
+          _buildDataTable(Map<String, dynamic>.from(log.afterData ?? {})
+            ..remove('id')
+            ..remove('_metadata')
+          ),
         ],
       );
     } else if (log.operation.startsWith('delete_')) {
@@ -461,7 +521,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildDataTable(Map<String, dynamic>.from(log.beforeData ?? {})..remove('id')),
+          _buildDataTable(Map<String, dynamic>.from(log.beforeData ?? {})
+            ..remove('id')
+            ..remove('_metadata')),
         ],
       );
     } else {
@@ -839,10 +901,26 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       if (value.isEmpty) {
         return '{}';
       }
-      // For announcements, only show relevant fields
-      final displayMap = Map<String, dynamic>.from(value);
-      displayMap.removeWhere((key, _) => !['title', 'description', 'clubId', 'date'].contains(key));
-      return '{${displayMap.keys.take(3).join(', ')}${displayMap.length > 3 ? ', ...' : ''}}';
+      // Display map with key-value pairs (one level deep)
+      final entries = value.entries.take(5).map((e) {
+        final val = e.value;
+        String formattedVal;
+        if (val is Timestamp) {
+          formattedVal = DateFormat('MMM d, yyyy').format(val.toDate());
+        } else if (val is Map) {
+          formattedVal = '{...}';
+        } else if (val is List) {
+          formattedVal = '[${val.length} items]';
+        } else {
+          formattedVal = val.toString();
+          if (formattedVal.length > 30) {
+            formattedVal = '${formattedVal.substring(0, 30)}...';
+          }
+        }
+        return '${e.key}: $formattedVal';
+      }).join(', ');
+      final suffix = value.length > 5 ? ', ...' : '';
+      return '{$entries$suffix}';
     } else {
       return value.toString();
     }

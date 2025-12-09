@@ -114,10 +114,38 @@ class AdminLog {
 
     final changedFields = <String>[];
     for (final key in afterData!.keys) {
-      if (!beforeData!.containsKey(key) || beforeData![key] != afterData![key]) {
+      if (!beforeData!.containsKey(key) || !_deepEquals(beforeData![key], afterData![key])) {
         changedFields.add(key);
       }
     }
     return changedFields;
+  }
+
+  /// Deep equality comparison for maps and lists (one level deep)
+  bool _deepEquals(dynamic a, dynamic b) {
+    if (a == b) return true;
+    if (a == null || b == null) return false;
+
+    // Handle maps
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key)) return false;
+        // For nested values, use simple equality (one level deep)
+        if (a[key] != b[key]) return false;
+      }
+      return true;
+    }
+
+    // Handle lists
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (int i = 0; i < a.length; i++) {
+        if (a[i] != b[i]) return false;
+      }
+      return true;
+    }
+
+    return false;
   }
 }
