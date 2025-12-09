@@ -31,6 +31,17 @@ class _EventManagerState extends ConsumerState<EventManager> {
   @override
   void initState() {
     super.initState();
+
+    // Check if providers need to be refreshed (after logout)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final needsRefresh = ref.read(needsProviderRefreshProvider);
+      if (needsRefresh) {
+        invalidateAllProviders(ref);
+        // Reset the flag
+        ref.read(needsProviderRefreshProvider.notifier).state = false;
+      }
+    });
+
     _screens = [
       DashboardScreen(user: widget.user),
       const EventsScreen(),

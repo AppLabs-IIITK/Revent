@@ -304,6 +304,9 @@ final selectedDayProvider = StateProvider<DateTime>((ref) =>
 
 final calendarViewProvider = StateProvider<String>((ref) => 'month');
 
+// Flag to track if providers need to be refreshed after logout
+final needsProviderRefreshProvider = StateProvider<bool>((ref) => false);
+
 void invalidateAllProviders(WidgetRef ref) {
   ref.invalidate(eventsStreamProvider);
   ref.invalidate(todaysEventsStreamProvider);

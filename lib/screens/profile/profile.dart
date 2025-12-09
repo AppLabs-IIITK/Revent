@@ -429,6 +429,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                 onPressed: () async {
+                  // Set flag to refresh providers on next login
+                  ref.read(needsProviderRefreshProvider.notifier).state = true;
                   await AuthService().signOut();
                   invalidateAllProviders(ref);
                   if (!context.mounted) return;
