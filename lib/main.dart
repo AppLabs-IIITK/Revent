@@ -4,6 +4,7 @@ import 'package:events_manager/login_page.dart';
 import 'package:events_manager/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:events_manager/event_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +19,10 @@ void main() async {
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
-  // Initialize notification service
-  await NotificationService.initialize();
+  // Initialize notification service for non web platforms
+  if (!kIsWeb) {
+    await NotificationService.initialize();
+  }
 
   runApp(
     const ProviderScope(

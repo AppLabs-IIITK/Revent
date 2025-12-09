@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:events_manager/bottom_navbar.dart';
@@ -7,6 +6,7 @@ import 'package:events_manager/screens/screens.dart';
 import 'package:events_manager/utils/common_utils.dart';
 import 'package:events_manager/utils/markdown_renderer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
@@ -52,7 +52,7 @@ class _EventManagerState extends ConsumerState<EventManager> {
     // Check for updates after the UI is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(seconds: 1), () {
-        if(Platform.isAndroid){
+        if(!kIsWeb){
           _checkForUpdates();
         }
       });

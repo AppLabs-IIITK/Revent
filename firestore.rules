@@ -2,16 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🔹 Helper Functions
-    function isAdmin(clubId) {
-      let clubDoc = get(/databases/$(database)/documents/clubs/$(clubId)).data;
-      return clubDoc.adminEmails != null &&
-             clubDoc.adminEmails is list &&
-             request.auth.token.email in clubDoc.adminEmails;
+    function hasEmail() {
+      return request.auth != null &&
+             request.auth.token.email != null;
+    }
+
+    function isSuperAdmin() {
+      let admins = [
+        "kssakhilraj@gmail.com",
+      ];
+      return hasEmail() && request.auth.token.email in admins;
     }
 
     function isAuthenticated() {
-      return request.auth != null;
+      return (hasEmail() && request.auth.token.email.matches('.*@iiitkottayam\\.ac\\.in$')) || isSuperAdmin();
+    }
+
+    function isAdmin(clubId) {
+      let clubDoc = get(/databases/$(database)/documents/clubs/$(clubId)).data;
+      return (clubDoc.adminEmails != null &&
+             clubDoc.adminEmails is list &&
+             request.auth.token.email in clubDoc.adminEmails) || isSuperAdmin();
     }
 
     function isOwner(userId) {
@@ -34,7 +45,7 @@ service cloud.firestore {
     // 🔹 Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId) && isMetadataValid();
+      allow create: if isAuthenticated() && isOwner(userId);
       allow update: if isAuthenticated() && isOwner(userId) && isMetadataValid();
       // No delete rule - users shouldn't be able to delete their accounts
     }
