@@ -40,8 +40,9 @@
   },
   "functions": [
     {
-      "source": "functions",
-      "codebase": "default",
+      "source": "functions-ts",
+      "codebase": "functions-ts",
+      "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",
         ".git",
@@ -50,9 +51,8 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
-      ],
-      "region": "asia-south1"
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
   ]
 }

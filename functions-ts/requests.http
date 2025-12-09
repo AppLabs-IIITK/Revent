@@ -1,0 +1,75 @@
+### Revent Cloud Functions API Tests
+### Base URL - Update after deployment
+@baseUrl = https://asia-south1-event-manager-dfd26.cloudfunctions.net/api
+
+### For local testing (emulator)
+# @baseUrl = http://127.0.0.1:5001/event-manager-dfd26/asia-south1/api
+
+### Firebase ID Token - Replace with your actual token
+### To get your token: Login to your app, then in browser console run: firebase.auth().currentUser.getIdToken()
+@firebaseToken = YOUR_FIREBASE_ID_TOKEN_HERE
+
+###############################################
+### Health Check
+###############################################
+
+### GET Health Check (No auth required)
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+###############################################
+### Upload - Signed URL Generation (Auth Required)
+###############################################
+
+### POST Generate Signed Upload URL for Profile Picture
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "profile_pictures/user123.jpg",
+  "contentType": "image/jpeg"
+}
+
+### POST Generate Signed Upload URL for Club Logo
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "club_logos/club456.png",
+  "contentType": "image/png"
+}
+
+
+### POST Generate Signed Upload URL for Event Banner
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "event_banners/event789.jpg",
+  "contentType": "image/jpeg"
+}
+
+
+### POST Generate Signed Upload URL for Map Marker Icon
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "map_markers/marker_custom.png",
+  "contentType": "image/png"
+}
+
+
+### POST Generate Signed Upload URL for Announcement Image
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "announcements/announcement_img_001.jpg",
+  "contentType": "image/jpeg"
+}

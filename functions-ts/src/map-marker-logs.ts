@@ -1,13 +1,13 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const { createLogEntry } = require('./utils');
+import * as functions from 'firebase-functions/v1';
+
+import { createLogEntry } from './utils';
 
 // Log all writes to mapMarkers collection
-exports.logMapMarkerChanges = functions
+export const logMapMarkerChanges = functions
   .region('asia-south1')
   .firestore
   .document('mapMarkers/{markerId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (change: functions.Change<functions.firestore.DocumentSnapshot>, context: functions.EventContext) => {
     const markerId = context.params.markerId;
     const beforeData = change.before.exists ? change.before.data() : null;
     const afterData = change.after.exists ? change.after.data() : null;
@@ -28,3 +28,4 @@ exports.logMapMarkerChanges = functions
       context
     });
   });
+

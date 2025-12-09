@@ -1,13 +1,25 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const { createLogEntry } = require('./utils');
+import * as functions from 'firebase-functions/v1';
+
+import { createLogEntry } from './utils';
+
+// Remove sensitive data from user objects before logging
+function sanitizeUserData(userData: any): any {
+  // Create a copy to avoid modifying the original
+  const sanitized = {...userData};
+
+  // Remove any sensitive fields you don't want to log
+  delete sanitized.authProviders;
+  delete sanitized.phoneNumber;
+
+  return sanitized;
+}
 
 // Log all writes to users collection
-exports.logUserChanges = functions
+export const logUserChanges = functions
   .region('asia-south1')
   .firestore
   .document('users/{userId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (change: functions.Change<functions.firestore.DocumentSnapshot>, context: functions.EventContext) => {
     const userId = context.params.userId;
     const beforeData = change.before.exists ? change.before.data() : null;
     const afterData = change.after.exists ? change.after.data() : null;
@@ -44,15 +56,3 @@ exports.logUserChanges = functions
       context
     });
   });
-
-// Remove sensitive data from user objects before logging
-function sanitizeUserData(userData) {
-  // Create a copy to avoid modifying the original
-  const sanitized = {...userData};
-
-  // Remove any sensitive fields you don't want to log
-  delete sanitized.authProviders;
-  delete sanitized.phoneNumber;
-
-  return sanitized;
-}

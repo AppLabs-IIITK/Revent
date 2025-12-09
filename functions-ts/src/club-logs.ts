@@ -1,13 +1,13 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const { createLogEntry } = require('./utils');
+import * as functions from 'firebase-functions/v1';
+
+import { createLogEntry } from './utils';
 
 // Log all writes to clubs collection
-exports.logClubChanges = functions
+export const logClubChanges = functions
   .region('asia-south1')
   .firestore
   .document('clubs/{clubId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (change: functions.Change<functions.firestore.DocumentSnapshot>, context: functions.EventContext) => {
     const clubId = context.params.clubId;
     const beforeData = change.before.exists ? change.before.data() : null;
     const afterData = change.after.exists ? change.after.data() : null;
@@ -45,3 +45,4 @@ exports.logClubChanges = functions
       context
     });
   });
+

@@ -74,7 +74,8 @@ service cloud.firestore {
 
     // 🔹 Deny access to any other collections by default
     match /{document=**} {
-      allow read, write: if false;
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
   }
 }
