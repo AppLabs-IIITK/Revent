@@ -416,6 +416,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildDataComparisonTable(AdminLog log) {
+    // Special handling for optimized announcement logs
+    if (log.collection == 'announcements') {
+      return _buildAnnouncementLogDetails(log);
+    }
+
+    // Default handling for other collections
     final changedFields = log.getChangedFields().where((field) => field != 'id').toList();
     final allFields = <String>{};
 
@@ -558,6 +564,189 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ],
       );
     }
+  }
+
+  Widget _buildAnnouncementLogDetails(AdminLog log) {
+    if (log.operation == 'add_announcement') {
+      final announcement = log.afterData?['announcement'] as Map<String, dynamic>?;
+      final totalCount = log.afterData?['totalCount'] ?? 0;
+      final previousCount = log.beforeData?['totalCount'] ?? 0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFF83ACBD), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Total announcements: $previousCount → $totalCount',
+                style: const TextStyle(color: Color(0xFF83ACBD), fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'New Announcement:',
+            style: TextStyle(
+              color: Color(0xFFAEE7FF),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (announcement != null) _buildAnnouncementCard(announcement),
+        ],
+      );
+    } else if (log.operation == 'delete_announcement') {
+      final announcement = log.beforeData?['announcement'] as Map<String, dynamic>?;
+      final index = log.beforeData?['index'] ?? '?';
+      final totalCount = log.beforeData?['totalCount'] ?? 0;
+      final newCount = log.afterData?['totalCount'] ?? 0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFF83ACBD), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Total announcements: $totalCount → $newCount • Position: $index',
+                style: const TextStyle(color: Color(0xFF83ACBD), fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Deleted Announcement:',
+            style: TextStyle(
+              color: Color(0xFFAEE7FF),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (announcement != null) _buildAnnouncementCard(announcement),
+        ],
+      );
+    } else if (log.operation == 'update_announcement') {
+      final beforeAnn = log.beforeData?['announcement'] as Map<String, dynamic>?;
+      final afterAnn = log.afterData?['announcement'] as Map<String, dynamic>?;
+      final index = log.afterData?['index'] ?? '?';
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: Color(0xFF83ACBD), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Position: $index',
+                style: const TextStyle(color: Color(0xFF83ACBD), fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Before:',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (beforeAnn != null) _buildAnnouncementCard(beforeAnn),
+          const SizedBox(height: 12),
+          const Text(
+            'After:',
+            style: TextStyle(
+              color: Colors.green,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (afterAnn != null) _buildAnnouncementCard(afterAnn),
+        ],
+      );
+    } else {
+      // Fallback for create/delete document operations
+      return _buildDataTable(log.afterData ?? log.beforeData ?? {});
+    }
+  }
+
+  Widget _buildAnnouncementCard(Map<String, dynamic> announcement) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17323D),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF2A4A5A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            announcement['title'] ?? 'No title',
+            style: const TextStyle(
+              color: Color(0xFFAEE7FF),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (announcement['description'] != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              announcement['description'],
+              style: const TextStyle(
+                color: Color(0xFF83ACBD),
+                fontSize: 12,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (announcement['date'] != null)
+                _buildInfoChip(Icons.calendar_today, _formatFieldValue(announcement['date'])),
+              if (announcement['clubId'] != null)
+                _buildInfoChip(Icons.group, announcement['clubId']),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F2027),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF83ACBD)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF83ACBD),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDataTable(Map<String, dynamic>? data) {

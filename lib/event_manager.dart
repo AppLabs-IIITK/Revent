@@ -50,8 +50,8 @@ class _EventManagerState extends ConsumerState<EventManager> {
 
    // Simple function to check for app updates
   Future<void> _checkForUpdates() async {
-    // if (hasCheckedForUpdates) return;
-    // hasCheckedForUpdates = true;
+    if (hasCheckedForUpdates) return;
+    hasCheckedForUpdates = true;
 
     try {
       final versionInfo = await VersionInfo.getVersionInfo();

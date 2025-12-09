@@ -14,62 +14,78 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isUserOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    function isServiceAccount() {
-      return request.auth.token.email.matches('.*@.*\\.gserviceaccount\\.com');
+    function isDeleteMetadataValid() {
+      return resource.data._deleteMetadata != null &&
+             resource.data._deleteMetadata.userEmail == request.auth.token.email &&
+             resource.data._deleteMetadata.userId == request.auth.uid;
     }
 
-    // 🔹 Admin Logs Collection - Only super admins can read, only Cloud Functions can write
-    match /admin_logs/{logId} {
-      allow read: if true;
-      allow write: if isServiceAccount(); // Allow Cloud Functions service account to write
+    function isMetadataValid() {
+      return request.resource.data._metadata != null &&
+             request.resource.data._metadata.userEmail == request.auth.token.email &&
+             request.resource.data._metadata.userId == request.auth.uid;
     }
+
 
     // 🔹 Users Collection
     match /users/{userId} {
-      allow read, write: if isUserOwner(userId);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isMetadataValid();
+      allow update: if isAuthenticated() && isOwner(userId) && isMetadataValid();
+      // No delete rule - users shouldn't be able to delete their accounts
     }
 
     // 🔹 Clubs Collection
     match /clubs/{clubId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow update: if isAuthenticated() && isAdmin(clubId) && isMetadataValid();
+      // No create/delete rules - clubs should be managed by backend
     }
 
     // 🔹 Events Collection
     match /events/{eventId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+                   isAdmin(request.resource.data.clubId) && isMetadataValid();
+      allow update: if isAuthenticated() &&
+                   isAdmin(resource.data.clubId) && isAdmin(request.resource.data.clubId) &&
+                   isMetadataValid();
+      allow delete: if isAuthenticated() &&
+                   isAdmin(resource.data.clubId) &&
+                   isDeleteMetadataValid();
     }
 
-    // 🔹 Announcements Collection
     match /announcements/{clubId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated() && isAdmin(clubId) && isMetadataValid();
+      allow update: if isAuthenticated() && isAdmin(clubId) && isMetadataValid();
+      allow delete: if isAuthenticated() && isAdmin(clubId) &&
+                   isDeleteMetadataValid();
     }
 
     // 🔹 Map Markers Collection
     match /mapMarkers/{markerId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      // Any authenticated user can create/update/delete markers
+      allow create: if isAuthenticated() && isMetadataValid();
+      allow update: if isAuthenticated() && isMetadataValid();
+      allow delete: if isAuthenticated() &&
+                   isDeleteMetadataValid();
     }
 
-    // 🔹 Notifications Collection
-    match /notifications/{notificationId} {
-      // Allow read access to any authenticated user for now to debug
+    // 🔹 Admin Logs Collection - Only super admins can read, only Cloud Functions can write
+    match /admin_logs/{logId} {
       allow read: if isAuthenticated();
-      // Original rules - uncomment after debugging
-      // allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false; // Only Cloud Functions can write
     }
 
-    // 🔹 LatestVer Collection
-    match /latestVer/{latestVerId} {
+    match /version_info/{docId} {
       allow read: if isAuthenticated();
+      allow write: if false;
     }
 
     // 🔹 Deny access to any other collections by default

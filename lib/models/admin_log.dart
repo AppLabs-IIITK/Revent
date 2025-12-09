@@ -67,6 +67,32 @@ class AdminLog {
   }
 
   String get changeDescription {
+    // Special handling for optimized announcement logs
+    if (collection == 'announcements') {
+      if (operation == 'add_announcement' && afterData != null) {
+        final announcement = afterData!['announcement'] as Map<String, dynamic>?;
+        final title = announcement?['title'] ?? 'Unknown';
+        return 'Added announcement: "$title"';
+      } else if (operation == 'delete_announcement' && beforeData != null) {
+        final announcement = beforeData!['announcement'] as Map<String, dynamic>?;
+        final title = announcement?['title'] ?? 'Unknown';
+        final index = beforeData!['index'] ?? '?';
+        return 'Deleted announcement: "$title" (position $index)';
+      } else if (operation == 'update_announcement') {
+        final announcement = afterData?['announcement'] as Map<String, dynamic>?;
+        final title = announcement?['title'] ?? 'Unknown';
+        final index = afterData?['index'] ?? '?';
+        return 'Updated announcement: "$title" (position $index)';
+      } else if (operation == 'create_club_announcements') {
+        final count = afterData?['totalCount'] ?? 0;
+        return 'Created announcements document ($count items)';
+      } else if (operation == 'delete_club_announcements') {
+        final count = beforeData?['totalCount'] ?? 0;
+        return 'Deleted announcements document ($count items)';
+      }
+    }
+
+    // Default handling for other collections
     if (operation.startsWith('create_')) {
       return 'Created new $collection';
     } else if (operation.startsWith('update_')) {

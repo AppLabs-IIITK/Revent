@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:events_manager/models/announcement.dart';
 import 'package:events_manager/models/map_marker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Export upload utilities
+export 'upload_utils.dart';
 
 // Utility function to get current user metadata
 Map<String, dynamic> _getUserMetadata() {
@@ -200,24 +199,6 @@ Future<void> deleteAnnouncement(String clubId, int index) async {
   }
 }
 
-// Supabase Storage Function
-Future<String> uploadAnnouncementImage(String filePath) async {
-  try {
-    final supabase = Supabase.instance.client;
-    final file = File(filePath);
-    final fileExt = filePath.split('.').last;
-    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-    final path = 'announcements/$fileName';
-
-    supabase.storage.from('assets').upload(path, file);
-    final imageUrl = supabase.storage.from('assets').getPublicUrl(path);
-
-    return imageUrl;
-  } catch (e) {
-    rethrow;
-  }
-}
-
 Future<void> updateClubBackground(String clubId, String imageUrl) async {
   final firestore = FirebaseFirestore.instance;
   // Add metadata to the update
@@ -250,23 +231,6 @@ Future<void> updateClubDetails(String clubId, {
     // Add metadata to the update
     final dataWithMetadata = _addMetadata(updateData);
     await firestore.collection('clubs').doc(clubId).update(dataWithMetadata);
-  }
-}
-
-Future<String> uploadClubImage(String clubId, String filePath, String type) async {
-  try {
-    final file = File(filePath);
-    final fileExt = filePath.split('.').last;
-    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-    final path = 'clubs/$clubId/${type}_$fileName';
-
-    final storageRef = FirebaseStorage.instance.ref(path);
-    await storageRef.putFile(file);
-    final imageUrl = await storageRef.getDownloadURL();
-
-    return imageUrl;
-  } catch (e) {
-    rethrow;
   }
 }
 
@@ -323,71 +287,6 @@ Future<void> deleteMapMarker(String markerId) async {
     await firestore.collection('mapMarkers')
         .doc(markerId)
         .delete();
-  } catch (e) {
-    rethrow;
-  }
-}
-
-Future<String> uploadMapMarkerImage(String filePath) async {
-  try {
-    final supabase = Supabase.instance.client;
-    final file = File(filePath);
-    final fileExt = filePath.split('.').last;
-    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-    final path = 'mapMarkers/$fileName';
-
-    supabase.storage.from('assets').upload(path, file);
-    final imageUrl = supabase.storage.from('assets').getPublicUrl(path);
-
-    return imageUrl;
-  } catch (e) {
-    rethrow;
-  }
-}
-
-Future<String> uploadUserProfileImage(String uid, String filePath) async {
-  try {
-    final file = File(filePath);
-    final fileExt = filePath.split('.').last;
-    final path = 'users/$uid/profile.$fileExt';
-
-    final storageRef = FirebaseStorage.instance.ref(path);
-    await storageRef.putFile(file);
-    final imageUrl = await storageRef.getDownloadURL();
-
-    // Update the user document with the new photo URL
-    final updateData = {'photoURL': imageUrl};
-    final dataWithMetadata = _addMetadata(updateData);
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .update(dataWithMetadata);
-
-    return imageUrl;
-  } catch (e) {
-    rethrow;
-  }
-}
-
-Future<String> uploadUserBackgroundImage(String uid, String filePath) async {
-  try {
-    final file = File(filePath);
-    final fileExt = filePath.split('.').last;
-    final path = 'users/$uid/background.$fileExt';
-
-    final storageRef = FirebaseStorage.instance.ref(path);
-    await storageRef.putFile(file);
-    final imageUrl = await storageRef.getDownloadURL();
-
-    // Update the user document with the new background URL
-    final updateData = {'backgroundImageUrl': imageUrl};
-    final dataWithMetadata = _addMetadata(updateData);
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .update(dataWithMetadata);
-
-    return imageUrl;
   } catch (e) {
     rethrow;
   }

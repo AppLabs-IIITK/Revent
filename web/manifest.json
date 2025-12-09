@@ -1,11 +1,11 @@
 {
-    "name": "events_manager",
-    "short_name": "events_manager",
+    "name": "Revent",
+    "short_name": "Revent",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#06222F",
     "theme_color": "#06222F",
-    "description": "A new Flutter project.",
+    "description": "Revent - An app that helps you manage your events",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
