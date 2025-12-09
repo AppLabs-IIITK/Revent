@@ -12,7 +12,7 @@ export const logAnnouncementChanges = functions
     const beforeData = change.before.exists ? change.before.data() : null;
     const afterData = change.after.exists ? change.after.data() : null;
 
-    // Determine operation type and extract only affected announcement
+      // Determine operation type and extract only affected announcement
     let operation = 'unknown';
     let optimizedBeforeData: any = null;
     let optimizedAfterData: any = null;
@@ -25,7 +25,7 @@ export const logAnnouncementChanges = functions
         clubId,
         totalCount: announcementsList.length,
         summary: 'Created announcements document',
-        _metadata: afterData._metadata // Preserve metadata
+        _metadata: afterData._metadata || null // Preserve metadata or null
       };
     } else if (beforeData && afterData) {
       const beforeList = beforeData.announcementsList || [];
@@ -47,7 +47,7 @@ export const logAnnouncementChanges = functions
           totalCount: afterList.length,
           index: 0,
           announcement: newAnnouncement,
-          _metadata: afterData._metadata // Preserve metadata for user tracking
+          _metadata: afterData._metadata || null // Preserve metadata or null
         };
 
         // Send FCM notification asynchronously (non-blocking)
@@ -108,12 +108,12 @@ export const logAnnouncementChanges = functions
           totalCount: beforeList.length,
           index: deletedIndex,
           announcement: deletedAnnouncement,
-          _deleteMetadata: beforeData._deleteMetadata // Preserve delete metadata
+          _deleteMetadata: beforeData._deleteMetadata || null // Preserve delete metadata or null
         };
         optimizedAfterData = {
           clubId,
           totalCount: afterList.length,
-          _metadata: afterData._metadata // Preserve metadata
+          _metadata: afterData._metadata || null // Preserve metadata or null
         };
       } else {
         operation = 'update_announcement';
@@ -143,7 +143,7 @@ export const logAnnouncementChanges = functions
           totalCount: afterList.length,
           index: updatedIndex,
           announcement: afterAnnouncement,
-          _metadata: afterData._metadata // Preserve metadata
+          _metadata: afterData._metadata || null // Preserve metadata or null
         };
       }
     } else if (beforeData && !afterData) {
@@ -153,7 +153,7 @@ export const logAnnouncementChanges = functions
         clubId,
         totalCount: beforeList.length,
         summary: 'Deleted entire announcements document',
-        _deleteMetadata: beforeData._deleteMetadata // Preserve delete metadata
+        _deleteMetadata: beforeData._deleteMetadata || null // Preserve delete metadata or null
       };
     }
 

@@ -28,7 +28,7 @@ class EventsCalendar extends ConsumerWidget {
       initialSelectedDate: selectedDate,
       dataSource: AppointmentDataSource(appointments),
       onTap: onTap,
-      showDatePickerButton: true,
+      showDatePickerButton: false,
       showNavigationArrow: true,
       allowViewNavigation: true,
       appointmentBuilder: (context, details) {

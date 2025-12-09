@@ -85,6 +85,8 @@ export const createLogEntry = async ({
  * Creates two tasks:
  * 1. 30 minutes before event start
  * 2. At event start time
+ *
+ * Uses deterministic task names to prevent duplicates when event is updated
  */
 export const scheduleEventNotifications = async (eventId: string, eventData: any) => {
   try {
@@ -106,7 +108,11 @@ export const scheduleEventNotifications = async (eventId: string, eventData: any
 
     // Schedule "30 minutes before" notification
     if (beforeTime > now) {
+      // Use deterministic task name to prevent duplicates
+      const taskName = `${parent}/tasks/${eventId}-before`;
+
       const beforeTask = {
+        name: taskName,
         httpRequest: {
           httpMethod: 'POST' as const,
           url,
@@ -123,13 +129,32 @@ export const scheduleEventNotifications = async (eventId: string, eventData: any
         },
       };
 
-      await tasksClient.createTask({ parent, task: beforeTask });
-      console.log(`Scheduled BEFORE notification for event ${eventId} at ${beforeTime}`);
+      try {
+        await tasksClient.createTask({ parent, task: beforeTask });
+        console.log(`Scheduled BEFORE notification for event ${eventId} at ${beforeTime}`);
+      } catch (error: any) {
+        // If task already exists, delete and recreate it
+        if (error.code === 6) { // ALREADY_EXISTS
+          try {
+            await tasksClient.deleteTask({ name: taskName });
+            await tasksClient.createTask({ parent, task: beforeTask });
+            console.log(`Rescheduled BEFORE notification for event ${eventId} at ${beforeTime}`);
+          } catch (retryError) {
+            console.error('Error rescheduling BEFORE task:', retryError);
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
     // Schedule "at start time" notification
     if (startTimeExact > now) {
+      // Use deterministic task name to prevent duplicates
+      const taskName = `${parent}/tasks/${eventId}-start`;
+
       const startTask = {
+        name: taskName,
         httpRequest: {
           httpMethod: 'POST' as const,
           url,
@@ -146,8 +171,23 @@ export const scheduleEventNotifications = async (eventId: string, eventData: any
         },
       };
 
-      await tasksClient.createTask({ parent, task: startTask });
-      console.log(`Scheduled START notification for event ${eventId} at ${startTimeExact}`);
+      try {
+        await tasksClient.createTask({ parent, task: startTask });
+        console.log(`Scheduled START notification for event ${eventId} at ${startTimeExact}`);
+      } catch (error: any) {
+        // If task already exists, delete and recreate it
+        if (error.code === 6) { // ALREADY_EXISTS
+          try {
+            await tasksClient.deleteTask({ name: taskName });
+            await tasksClient.createTask({ parent, task: startTask });
+            console.log(`Rescheduled START notification for event ${eventId} at ${startTimeExact}`);
+          } catch (retryError) {
+            console.error('Error rescheduling START task:', retryError);
+          }
+        } else {
+          throw error;
+        }
+      }
     }
   } catch (error) {
     console.error('Error scheduling event notifications:', error);
