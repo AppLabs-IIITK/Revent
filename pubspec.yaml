@@ -55,7 +55,6 @@ dependencies:
   latlong2: ^0.9.1
   flutter_cache_manager: ^3.4.1
   cached_network_image: ^3.4.1
-  firebase_storage: ^12.4.4
   firebase_messaging: ^15.2.4
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.0

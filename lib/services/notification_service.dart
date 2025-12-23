@@ -14,25 +14,7 @@ class NotificationService {
   /// Initialize notification service
   /// Call this in main() before runApp()
   static Future<void> initialize() async {
-    // Subscribe to global 'general' topic
-    await _messaging.subscribeToTopic('general');
-    debugPrint('✅ Subscribed to general notification topic');
-
-    // Request notification permissions
-    final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('✅ Notification permissions granted');
-    } else {
-      debugPrint('⚠️ Notification permissions denied');
-    }
-
-    // Initialize local notifications for foreground display
+    // Initialize local notifications for foreground display first (doesn't require FCM)
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -66,7 +48,60 @@ class NotificationService {
     // Handle foreground messages - show local notification
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-    debugPrint('✅ Notification service initialized');
+    debugPrint('✅ Local notification service initialized');
+
+    // FCM operations in background - don't block app startup
+    _initializeFCM();
+  }
+
+  /// Initialize FCM in background (non-blocking)
+  static Future<void> _initializeFCM() async {
+    try {
+      // Request notification permissions with timeout
+      final settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      ).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⚠️ Notification permission request timed out');
+          return const NotificationSettings(
+            authorizationStatus: AuthorizationStatus.notDetermined,
+            alert: AppleNotificationSetting.notSupported,
+            badge: AppleNotificationSetting.notSupported,
+            sound: AppleNotificationSetting.notSupported,
+            announcement: AppleNotificationSetting.notSupported,
+            carPlay: AppleNotificationSetting.notSupported,
+            criticalAlert: AppleNotificationSetting.notSupported,
+            lockScreen: AppleNotificationSetting.notSupported,
+            notificationCenter: AppleNotificationSetting.notSupported,
+            showPreviews: AppleShowPreviewSetting.never,
+            timeSensitive: AppleNotificationSetting.notSupported,
+            providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+          );
+        },
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('✅ Notification permissions granted');
+      } else {
+        debugPrint('⚠️ Notification permissions denied or not determined');
+      }
+
+      // Subscribe to global 'general' topic with timeout
+      await _messaging.subscribeToTopic('general').timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⚠️ FCM topic subscription timed out, will retry later');
+        },
+      );
+      debugPrint('✅ Subscribed to general notification topic');
+    } catch (e) {
+      debugPrint('⚠️ FCM initialization failed (will retry automatically): $e');
+      // FCM will retry automatically, don't block the app
+    }
   }
 
   /// Handle notification tap

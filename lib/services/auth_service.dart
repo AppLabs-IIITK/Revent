@@ -1,82 +1,66 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 
 class AuthService {
   final GoogleSignIn googleSignIn = GoogleSignIn(
     clientId:
         '271665798346-bqalgst3gesb4979nacjplai064dpusf.apps.googleusercontent.com',
   );
+
+  // API endpoint for auth
+  static const String _authEndpoint =
+      'https://asia-south1-event-manager-dfd26.cloudfunctions.net/api/auth/google';
+
+  /// Sign in with Google
+  /// Returns the GoogleSignInAccount if successful, null if cancelled
+  /// Returns the account but throws if domain is not allowed
   Future<GoogleSignInAccount?> signInWithGoogle() async {
-    // Sign in and force the user to select an account
+    // Sign in with Google (user interaction)
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
     if (googleUser == null) {
-      // User canceled the sign-in, return null
+      // User canceled the sign-in
       return null;
     }
-    if (!googleUser.email.endsWith("iiitkottayam.ac.in") &&
-        !googleUser.email.endsWith("kssakhilraj@gmail.com")) {
-      // User is not from the IIIT Kottayam domain, return null
-      await googleSignIn.signOut();
-      return googleUser;
-    }
 
+    // Get the Google ID token
     final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
+    // Call server to verify token, create/update user, and get custom Firebase token
+    final response = await http.post(
+      Uri.parse(_authEndpoint),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'idToken': googleAuth.idToken}),
     );
 
-    // Sign in to Firebase with the Google credentials
-    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-
-    // Extract roll number from email if it's an IIIT Kottayam email
-    String? rollNumber;
-    if (googleUser.email.endsWith('iiitkottayam.ac.in')) {
-      final emailParts = googleUser.email.split('@')[0];
-      final regExp = RegExp(r'(\d+)([a-zA-Z]+)(\d+)');
-      final match = regExp.firstMatch(emailParts);
-      if (match != null) {
-        final year = match.group(1)!;
-        final branch = match.group(2)!.toUpperCase();
-        final number = match.group(3)!.padLeft(4, '0');
-        rollNumber = '20$year$branch$number';
-      }
+    if (response.statusCode == 403) {
+      // User is not from the IIIT Kottayam domain
+      await googleSignIn.signOut();
+      return googleUser; // Return user so UI can show domain error
     }
-    await createOrUpdateUser(userCredential, googleUser, rollNumber);
-    // Return the signed-in user
+
+    if (response.statusCode != 200) {
+      await googleSignIn.signOut();
+      throw Exception('Authentication failed: ${response.body}');
+    }
+
+    final responseData = jsonDecode(response.body);
+    final customToken = responseData['customToken'] as String;
+
+    // Sign in to Firebase with the custom token
+    await FirebaseAuth.instance.signInWithCustomToken(customToken);
+
     return googleUser;
   }
 
+  /// Sign out from both Firebase and Google
   Future<void> signOut() async {
-    await FirebaseAuth.instance.signOut();
-    await googleSignIn.signOut();
-  }
-
-  Future<void> createOrUpdateUser(UserCredential userCredential, GoogleSignInAccount googleUser, String? rollNumber) async {
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid);
-
-    // Check if document exists
-    final docSnapshot = await userDoc.get();
-    if (!docSnapshot.exists) {
-      // Create new document if it doesn't exist
-      await userDoc.set({
-        'uid': userCredential.user!.uid,
-        'name': googleUser.displayName,
-        'email': googleUser.email,
-        'photoURL': googleUser.photoUrl,
-        'rollNumber': rollNumber,
-        'createdAt': DateTime.now(),
-        'lastLogin': DateTime.now(),
-      });
-    } else {
-      // Update lastLogin for existing user
-      await userDoc.update({
-        'lastLogin': DateTime.now(),
-      });
-    }
+    await Future.wait([
+      FirebaseAuth.instance.signOut(),
+      googleSignIn.signOut(),
+    ]);
   }
 }
