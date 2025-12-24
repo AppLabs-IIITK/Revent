@@ -37,13 +37,17 @@ class CustomBottomNavigationBar extends StatelessWidget {
               iconPath: 'assets/icons_1/map.svg',
               index: 3,
             ),
+            _buildNavItem(
+              icon: Icons.folder_outlined,
+              index: 4,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem({required String iconPath, required int index}) {
+  Widget _buildNavItem({String? iconPath, IconData? icon, required int index}) {
     bool isSelected = selectedIndex == index;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -55,14 +59,21 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(
-            iconPath,
-            height: 26,
-            colorFilter: ColorFilter.mode(
-              isSelected ? const Color(0xff71C2E4) : const Color(0xff71C2E4),
-              BlendMode.srcIn,
+          if (iconPath != null)
+            SvgPicture.asset(
+              iconPath,
+              height: 26,
+              colorFilter: const ColorFilter.mode(
+                Color(0xff71C2E4),
+                BlendMode.srcIn,
+              ),
+            )
+          else if (icon != null)
+            Icon(
+              icon,
+              size: 26,
+              color: const Color(0xff71C2E4),
             ),
-          ),
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             height: 2,

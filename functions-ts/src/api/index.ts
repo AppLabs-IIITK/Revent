@@ -2,6 +2,7 @@ import express from 'express';
 import { healthRouter } from './routes/health';
 import { uploadRouter } from './routes/upload';
 import { authRouter } from './routes/auth';
+import { githubRouter } from './routes/github';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use((req, res, next) => {
 app.use('/health', healthRouter);
 app.use('/upload', uploadRouter);
 app.use('/auth', authRouter);
+app.use('/github', githubRouter);
 
 // 404 handler
 app.use((req, res) => {

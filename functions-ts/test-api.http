@@ -1,0 +1,53 @@
+### Firebase Emulator API Testing
+### Use this file with REST Client extension in VS Code or similar tools
+
+@baseUrl = http://127.0.0.1:5001/event-manager-dfd26/asia-south1/api
+@firebaseToken = qtdc cobm imrw njgw
+@googleIdToken = YOUR_GOOGLE_ID_TOKEN_HERE
+
+### 1. Health Check
+GET {{baseUrl}}/health
+
+### 2. Google Authentication
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "{{googleIdToken}}"
+}
+
+### 3. Get Signed Upload URL (requires authentication)
+POST {{baseUrl}}/upload/signed-url
+Content-Type: application/json
+Authorization: Bearer {{firebaseToken}}
+
+{
+  "filePath": "uploads/test-image.jpg",
+  "contentType": "image/jpeg"
+}
+
+### 4. Test CORS Preflight
+OPTIONS {{baseUrl}}/health
+Origin: http://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type
+
+###############################################
+###           GITHUB RESOURCES              ###
+###############################################
+
+### 5. List Root Folder (requires auth)
+GET {{baseUrl}}/github/list
+Authorization: Bearer {{firebaseToken}}
+
+### 6. List Specific Folder (requires auth)
+GET {{baseUrl}}/github/list?path=PYQs
+Authorization: Bearer {{firebaseToken}}
+
+### 7. List Nested Folder
+GET {{baseUrl}}/github/list?path=PYQs/CSE
+Authorization: Bearer {{firebaseToken}}
+
+### 8. Get Raw File URL
+GET {{baseUrl}}/github/raw?path=README.md
+Authorization: Bearer {{firebaseToken}}

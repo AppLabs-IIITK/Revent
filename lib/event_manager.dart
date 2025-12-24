@@ -5,6 +5,7 @@ import 'package:events_manager/models/version_info.dart';
 import 'package:events_manager/screens/screens.dart';
 import 'package:events_manager/utils/common_utils.dart';
 import 'package:events_manager/utils/markdown_renderer.dart';
+import 'package:events_manager/providers/github_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,9 @@ class _EventManagerState extends ConsumerState<EventManager> {
         // Reset the flag
         ref.read(needsProviderRefreshProvider.notifier).state = false;
       }
+
+      // Pre-fetch entire Resources tree for faster loading
+      ref.read(githubTreeProvider);
     });
 
     _screens = [
@@ -47,6 +51,7 @@ class _EventManagerState extends ConsumerState<EventManager> {
       const EventsScreen(),
       const SearchScreen(),
       const MapScreen(),
+      const ResourcesScreen(),
     ];
 
     // Check for updates after the UI is built
